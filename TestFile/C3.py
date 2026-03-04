@@ -4,65 +4,82 @@ from scipy.integrate import solve_ivp
 
 # ------------------------------
 # Parameter sistem
-# ωn = 5 rad/s
-# ζ = 0.7
 # ------------------------------
-a1 = -9       # = -ωn^2
-a2 = -3       # = -2ζωn
-b1 = 2        # gain elevator
+
+# Translasi
+m = 1.0
+c = 0.8
+k = 2.0
+
+# Rotasi
+I = 0.5
+c_theta = 0.15
+k_theta = 2.0
+b = 1.5
 
 def elevator_input(t):
-    return 0.1   
+    return 0.3  # step elevator
 
-def pitch_dynamics(t, x):
-    theta = x[0]
-    q = x[1]
+def two_dof_dynamics(t, x):
+    x_pos = x[0]
+    x_vel = x[1]
+    theta = x[2]
+    q = x[3]
+    
     delta_e = elevator_input(t)
     
-    dtheta_dt = q
-    dq_dt = a1*theta + a2*q + b1*delta_e
+    # Translasi
+    dx1_dt = x_vel
+    dx2_dt = (-c*x_vel - k*x_pos)/m
     
-    return [dtheta_dt, dq_dt]
+    # Rotasi
+    dx3_dt = q
+    dx4_dt = (-c_theta*q - k_theta*theta + b*delta_e)/I
+    
+    return [dx1_dt, dx2_dt, dx3_dt, dx4_dt]
 
-x0 = [0, 0] #kondisi awal
-t_span = (0, 10) #simulasinya berapa detik
-t_eval = np.linspace(0, 10, 1000) 
+# Kondisi awal
+x0 = [0, 0, 0, 0]
 
+t_span = (0, 10)
+t_eval = np.linspace(0, 10, 1000)
 
-sol = solve_ivp(pitch_dynamics, t_span, x0, t_eval=t_eval)
-theta = sol.y[0]
-q = sol.y[1]
+sol = solve_ivp(two_dof_dynamics, t_span, x0, t_eval=t_eval)
 
-# Plot 1: Theta vs Time
+x_pos = sol.y[0]
+x_vel = sol.y[1]
+theta = sol.y[2]
+q = sol.y[3]
+
+# ------------------------------
+# Plot posisi translasi
+# ------------------------------
+plt.figure()
+plt.plot(sol.t, x_pos)
+plt.xlabel("Time (s)")
+plt.ylabel("Position x (m)")
+plt.title("Translational Position vs Time")
+plt.grid()
+plt.show()
+
+# ------------------------------
+# Plot sudut pitch
+# ------------------------------
 plt.figure()
 plt.plot(sol.t, theta)
 plt.xlabel("Time (s)")
-plt.ylabel("Pitch Angle θ (rad)")
-plt.title("Theta vs Time")
-plt.savefig("1.png")
+plt.ylabel("Theta (rad)")
+plt.title("Pitch Angle vs Time")
 plt.grid()
 plt.show()
 
 # ------------------------------
-# Plot 2: dTheta/dt vs Time (q)
-# ------------------------------
-plt.figure()
-plt.plot(sol.t, q)
-plt.xlabel("Time (s)")
-plt.ylabel("dθ/dt = q (rad/s)")
-plt.title("Pitch Rate vs Time")
-plt.savefig("2.png")
-plt.grid()
-plt.show()
-
-# ------------------------------
-# Plot 3: Phase Plot (q vs θ)
+# Phase plot pitch
 # ------------------------------
 plt.figure()
 plt.plot(theta, q)
 plt.xlabel("Theta (rad)")
 plt.ylabel("Pitch Rate q (rad/s)")
-plt.title("Phase Plot (q vs Theta)")
-plt.savefig("3.png")
+plt.title("Phase Plot Pitch")
 plt.grid()
 plt.show()
